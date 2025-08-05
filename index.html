@@ -221,8 +221,31 @@
         }
 
         .controls {
-            display: none; /* Kontrol tuşları kaldırıldı */
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            width: 100%;
         }
+
+        .btn {
+            background: var(--surface-color);
+            border: none;
+            border-radius: 12px;
+            padding: 10px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            transition: transform 0.1s ease, box-shadow 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .btn:active { transform: scale(0.95); box-shadow: none; }
+        .btn svg { width: 20px; height: 20px; fill: var(--text-secondary); }
+        #rotate-btn { grid-column: 2; grid-row: 1; }
+        #left-btn { grid-column: 1; grid-row: 1; }
+        #right-btn { grid-column: 3; grid-row: 1; }
+        #down-btn { grid-column: 1 / -1; grid-row: 2; background-color: var(--google-blue); }
+        #down-btn svg { fill: white; }
         
         .game-over-modal {
             position: absolute; top: 0; left: 0; right: 0; bottom: 0;
@@ -264,8 +287,12 @@
             </div>
         </div>
         
-        <!-- On-screen controls removed from view -->
-        <div class="controls" style="display: none;"></div>
+        <div class="controls">
+            <button class="btn" id="left-btn" aria-label="Move Left"><svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg></button>
+            <button class="btn" id="rotate-btn" aria-label="Rotate"><svg viewBox="0 0 24 24"><path d="M7.95 4.58C5.27 6.42 3.5 9.5 3.5 13c0 4.69 3.81 8.5 8.5 8.5s8.5-3.81 8.5-8.5c0-3.26-1.84-6.13-4.55-7.62L14.5 7.1C16.4 8.24 17.5 10.43 17.5 13c0 3.59-2.91 6.5-6.5 6.5s-6.5-2.91-6.5-6.5c0-2.31 1.22-4.35 3.05-5.5L7.95 4.58zM11 2h2v5h-2z"/></svg></button>
+            <button class="btn" id="right-btn" aria-label="Move Right"><svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg></button>
+            <button class="btn" id="down-btn" aria-label="Hard Drop"><svg viewBox="0 0 24 24"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg></button>
+        </div>
     </div>
 
     <script>
@@ -282,6 +309,12 @@
             const restartBtn = document.getElementById('restart-btn');
             const nextPieceBoard = document.getElementById('next-piece-board');
             
+            // Button elements
+            const leftBtn = document.getElementById('left-btn');
+            const rightBtn = document.getElementById('right-btn');
+            const rotateBtn = document.getElementById('rotate-btn');
+            const downBtn = document.getElementById('down-btn');
+
             let board, piece, nextPiece, score, highScore, dropCounter, baseDropInterval, dropInterval, lastTime, isGameOver, animationFrameId;
             let isAnimating = false;
             let softDropMultiplier = 1;
@@ -307,7 +340,7 @@
                 const pieceData = PIECES[key];
                 const newPiece = JSON.parse(JSON.stringify(pieceData));
                 newPiece.x = Math.floor(COLS / 2) - Math.floor(newPiece.shape[0].length / 2);
-                newPiece.y = -1; // Start slightly above the board
+                newPiece.y = -1;
                 newPiece.special = null;
 
                 if (Math.random() < 0.25) {
@@ -325,7 +358,7 @@
             }
 
             function draw() {
-                if (isAnimating) return; // Don't redraw during animations
+                if (isAnimating) return;
                 gameBoard.innerHTML = '';
                 board.forEach((row, y) => {
                     row.forEach((value, x) => {
@@ -438,7 +471,7 @@
                             const newY = y + i;
                             const newX = x + j;
                             if (newY >= 0 && newY < ROWS && newX >= 0 && newX < COLS) {
-                                board[newY][newX] = 0; // Update data model immediately
+                                board[newY][newX] = 0;
                             }
                         }
                     }
@@ -464,16 +497,12 @@
                 if (linesToClear.length > 0 || specialEffects.length > 0) {
                     isAnimating = true;
                     
-                    // Animate special effects first
                     for (const effect of specialEffects) {
                         if (effect.type === 'bomb') await activateBomb(effect.x, effect.y);
-                        // Other effects can be added here
                     }
                     
-                    // Redraw board after special effects to show their result
                     draw();
 
-                    // Animate line clearing
                     const cellsToClear = Array.from(gameBoard.children).filter(cell => {
                          const cellY = Math.round(parseFloat(cell.style.top) * ROWS / 100);
                          return linesToClear.includes(cellY);
@@ -484,7 +513,6 @@
                         await new Promise(resolve => setTimeout(resolve, 300));
                     }
                     
-                    // Update board data model
                     let linesClearedCount = 0;
                     const newBoard = createBoard();
                     let newRow = ROWS - 1;
@@ -516,14 +544,13 @@
                 if (collide(p)) {
                     merge();
                     
-                    // Landing animation
                     const landedCells = [];
                     piece.shape.forEach((row, y) => {
                         row.forEach((val, x) => {
                             if (val) landedCells.push({x: piece.x + x, y: piece.y + y});
                         });
                     });
-                    draw(); // Draw merged piece
+                    draw();
                     Array.from(gameBoard.children).forEach(cell => {
                         const cellX = Math.round(parseFloat(cell.style.left) * COLS / 100);
                         const cellY = Math.round(parseFloat(cell.style.top) * ROWS / 100);
@@ -658,6 +685,10 @@
                 if (e.key === 'ArrowDown') softDropMultiplier = 1;
             });
             
+            leftBtn.addEventListener('click', () => move(-1));
+            rightBtn.addEventListener('click', () => move(1));
+            rotateBtn.addEventListener('click', rotate);
+            downBtn.addEventListener('click', hardDrop);
             restartBtn.addEventListener('click', resetGame);
             
             let touchStartX = 0, touchStartY = 0;
